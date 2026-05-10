@@ -8,9 +8,9 @@
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
 # ================= KEYAUTH CONFIG =================
-$APP_NAME    = "desync"
-$OWNER_ID    = "nZcd3x2EX9"
-$APP_SECRET  = "7d232bee2c56f397efd7b585a201a6cae3a9b7bcf8d7299a939e8afec673b18d"
+$APP_NAME    = "Project Z9V"
+$OWNER_ID    = "1ofWmOzgWE"
+$APP_SECRET  = "295307d8175df0634449ee12632f4f4c88154c7ebea13523f85e875278367a1d"
 $VERSION     = "1.0"
 $KEYAUTH_API = "https://keyauth.win/api/1.3/"
 
