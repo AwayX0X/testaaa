@@ -1,0 +1,238 @@
+# ================================
+# XIANCODE MANUTAU
+# Normal Version (ครบทุกฟังก์ชัน)
+# ================================
+
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+# ================= KEYAUTH CONFIG =================
+$APP_NAME    = "desync"
+$OWNER_ID    = "nZcd3x2EX9"
+$APP_SECRET  = "7d232bee2c56f397efd7b585a201a6cae3a9b7bcf8d7299a939e8afec673b18d"
+$VERSION     = "1.0"
+$KEYAUTH_API = "https://keyauth.win/api/1.3/"
+
+# ================= ADMIN CHECK =================
+if (-not ([Security.Principal.WindowsPrincipal] `
+[Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
+[Security.Principal.WindowsBuiltInRole]::Administrator)) {
+
+    Write-Host "กรุณาเปิด PowerShell แบบ Run as administrator" -ForegroundColor Red
+    Pause
+    Exit
+}
+
+# ================= LOGIN =================
+function Login-KeyAuth {
+    param ($LicenseKey)
+
+    Write-Host "[!] Connecting..." -ForegroundColor Yellow
+
+    $initBody = @{
+        type    = "init"
+        ver     = $VERSION
+        name    = $APP_NAME
+        ownerid = $OWNER_ID
+    }
+
+    try {
+        $initResponse = Invoke-RestMethod `
+            -Uri $KEYAUTH_API `
+            -Method Post `
+            -Body $initBody
+
+        if ($initResponse.success -ne $true) {
+            Write-Host "Init Failed" -ForegroundColor Red
+            return $false
+        }
+
+        $sessionid = $initResponse.sessionid
+
+        $hwid = (Get-CimInstance win32_computersystemproduct).UUID
+
+        $loginBody = @{
+            type      = "license"
+            key       = $LicenseKey
+            hwid      = $hwid
+            sessionid = $sessionid
+            name      = $APP_NAME
+            ownerid   = $OWNER_ID
+        }
+
+        $loginResponse = Invoke-RestMethod `
+            -Uri $KEYAUTH_API `
+            -Method Post `
+            -Body $loginBody
+
+        if ($loginResponse.success -eq $true) {
+            Write-Host "Login Success" -ForegroundColor Green
+            return $true
+        }
+        else {
+            Write-Host "Login Failed" -ForegroundColor Red
+            return $false
+        }
+    }
+    catch {
+        Write-Host "Connection Error" -ForegroundColor Red
+        return $false
+    }
+}
+
+# ================= FUNCTIONS =================
+
+function Optimize-Network {
+
+    Write-Host "Optimizing Network..." -ForegroundColor Cyan
+
+    netsh int tcp set global autotuninglevel=normal
+    netsh int tcp set global rss=enabled
+    netsh int tcp set global chimney=enabled
+    netsh int tcp set global timestamps=disabled
+
+    ipconfig /flushdns | Out-Null
+}
+
+function Optimize-InputLag {
+
+    Write-Host "Reducing Input Lag..." -ForegroundColor Cyan
+
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters" `
+    /v "KeyboardDataQueueSize" /t REG_DWORD /d 50 /f >$null
+
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters" `
+    /v "MouseDataQueueSize" /t REG_DWORD /d 50 /f >$null
+
+    reg add "HKCU\Control Panel\Mouse" `
+    /v "MouseSpeed" /t REG_SZ /d "0" /f >$null
+}
+
+function Optimize-Visuals {
+
+    Write-Host "Optimizing Visuals..." -ForegroundColor Cyan
+
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" `
+    /v "VisualFXSetting" /t REG_DWORD /d 2 /f >$null
+}
+
+function Optimize-Gaming {
+
+    Write-Host "Boosting Gaming..." -ForegroundColor Cyan
+
+    reg add "HKCU\Software\Microsoft\GameBar" `
+    /v "AutoGameModeEnabled" `
+    /t REG_DWORD /d 1 /f >$null
+
+    reg add "HKCU\System\GameConfigStore" `
+    /v "GameDVR_Enabled" `
+    /t REG_DWORD /d 0 /f >$null
+}
+
+function Clean-Temp {
+
+    Write-Host "Cleaning Temp..." -ForegroundColor Cyan
+
+    Remove-Item "$env:TEMP\*" `
+    -Force -Recurse `
+    -ErrorAction SilentlyContinue
+
+    Remove-Item "C:\Windows\Temp\*" `
+    -Force -Recurse `
+    -ErrorAction SilentlyContinue
+}
+
+function Restore-Defaults {
+
+    Write-Host "Restoring Defaults..." -ForegroundColor Yellow
+
+    reg delete "HKCU\Software\Microsoft\GameBar" `
+    /v "AutoGameModeEnabled" /f 2>$null
+
+    reg delete "HKCU\System\GameConfigStore" `
+    /v "GameDVR_Enabled" /f 2>$null
+}
+
+# ================= LOGIN SCREEN =================
+
+Clear-Host
+
+Write-Host "=============================" -ForegroundColor Cyan
+Write-Host "      XIAN MANUTAU"
+Write-Host "=============================" -ForegroundColor Cyan
+
+$license = Read-Host "Enter License Key"
+
+if (-not (Login-KeyAuth -LicenseKey $license)) {
+    Pause
+    Exit
+}
+
+# ================= MENU =================
+
+do {
+
+    Clear-Host
+
+    Write-Host "=============================" -ForegroundColor Cyan
+    Write-Host "      XIAN MENU"
+    Write-Host "=============================" -ForegroundColor Cyan
+
+    Write-Host "[1] FULL OPTIMIZE"
+    Write-Host "[2] CLEAN CACHE"
+    Write-Host "[3] SHOW STATUS"
+    Write-Host "[4] RESTORE DEFAULT"
+    Write-Host "[0] EXIT"
+
+    $choice = Read-Host "Select"
+
+    switch ($choice) {
+
+        "1" {
+
+            Optimize-Network
+            Optimize-InputLag
+            Optimize-Visuals
+            Optimize-Gaming
+
+            Write-Host ""
+            Write-Host "Optimize Success" -ForegroundColor Green
+
+            Pause
+        }
+
+        "2" {
+
+            Clean-Temp
+
+            Write-Host ""
+            Write-Host "Clean Success" -ForegroundColor Green
+
+            Pause
+        }
+
+        "3" {
+
+            Write-Host ""
+            Write-Host "System Ready" -ForegroundColor Green
+
+            Pause
+        }
+
+        "4" {
+
+            Restore-Defaults
+
+            Write-Host ""
+            Write-Host "Restore Success" -ForegroundColor Yellow
+
+            Pause
+        }
+
+        "0" {
+            Exit
+        }
+    }
+
+} while ($true)
